@@ -33,7 +33,6 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -87,7 +86,7 @@ public class VentanaAventurero extends JFrame {
 	 * @see #_AltoY
 	 * @see #_AnchoX
 	 */
-	private static final int _Ancho = 954;
+	private static final int _Ancho = 1010;
 	private static final int _Alto = 550;
 	private static final int _AltoY = (java.awt.Toolkit.getDefaultToolkit().getScreenSize().height / 2) - (_Alto / 2);
 	private static final int _AnchoX = (java.awt.Toolkit.getDefaultToolkit().getScreenSize().width / 2) - (_Ancho / 2);
@@ -1289,7 +1288,7 @@ public class VentanaAventurero extends JFrame {
 		PanelTextArea.add(FotoArcoiris, "name_8855760740559");
 
 		PanelArbol = new JPanel();
-		PanelArbol.setPreferredSize(new Dimension(166, 511));
+		PanelArbol.setPreferredSize(new Dimension(187, 511));
 		PanelArbol.setBorder(UIManager.getBorder("Button.border"));
 		getContentPane().add(PanelArbol, BorderLayout.WEST);
 		PanelArbol.setLayout(new BorderLayout(0, 0));
@@ -1342,8 +1341,8 @@ public class VentanaAventurero extends JFrame {
 					queHaSeleccionado(Arbol.getLastSelectedPathComponent().toString());
 			}
 		});
-		PanelAbrirBorrar.setLayout(new BoxLayout(PanelAbrirBorrar, BoxLayout.X_AXIS));
-		PanelAbrirBorrar.add(AbrirSeleccionArbol);
+		PanelAbrirBorrar.setLayout(new BorderLayout(0, 0));
+		PanelAbrirBorrar.add(AbrirSeleccionArbol, BorderLayout.WEST);
 
 		BorraHeroe = new JButton("Borrar Heroe");
 		BorraHeroe.setMnemonic('b');
