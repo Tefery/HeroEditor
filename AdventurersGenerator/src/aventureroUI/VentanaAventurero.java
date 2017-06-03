@@ -189,6 +189,8 @@ public class VentanaAventurero extends JFrame {
 		PuntTL = Aventurero.getPuntosTotales();
 		initComponents();
 		actualizaTodo();
+
+		Clases.setSelectedItem("GUERRERO");
 	}
 
 	/**
@@ -215,7 +217,7 @@ public class VentanaAventurero extends JFrame {
 			VentDesRaza = new VentanaDescripcion(Consul.getRaza(nombre.toUpperCase()), PTerra);
 			VentDesRaza.setVisible(true);
 		}
-		construyeArbol();
+		//construyeArbol();
 	}
 
 	/**
@@ -1081,6 +1083,7 @@ public class VentanaAventurero extends JFrame {
 					sucio(true);
 				}
 			});
+			
 		}
 		OpcionFoto.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -1090,6 +1093,8 @@ public class VentanaAventurero extends JFrame {
 			}
 		});
 
+		
+		
 		PanelCaracteristicas = new JPanel();
 		PanelStats.add(PanelCaracteristicas, BorderLayout.CENTER);
 		PanelCaracteristicas.setLayout(new GridLayout(0, 1, 0, 0));
@@ -1417,5 +1422,6 @@ public class VentanaAventurero extends JFrame {
 			});
 		}
 		cargaToolTips();
+
 	}
 }

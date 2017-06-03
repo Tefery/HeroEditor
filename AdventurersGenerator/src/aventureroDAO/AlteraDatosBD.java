@@ -3,6 +3,9 @@ package aventureroDAO;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,7 +31,7 @@ import aventureroCORE.Raza;
  * @see aventureroCORE.Habilidades
  * @see aventureroCORE.Raza
  * @author Tefery
- * @version 0.5.0
+ * @version 0.6.0
  */
 public class AlteraDatosBD {
 	Connection conn;
@@ -47,6 +50,37 @@ public class AlteraDatosBD {
 			resetDatabase();
 	}
 
+	/**
+	 * Actualiza la base de datos con la información que llega del servidor
+	 * 
+	 * @throws SQLException, IOException, ClassNotFoundException.
+	 *             Cuando no es capaz de establecer la conexión.
+	 * @param conexion
+	 * 			La conexión con el servidor de actualizaciones.
+	 */
+	public void actualizaDataBase(Socket conexion) throws SQLException, IOException, ClassNotFoundException {
+		Statement stmt = conn.createStatement();
+		stmt.executeUpdate("CREATE TABLE HEROESTEMPORAL(PUNTOSTOTALES INT NOT NULL,NOMBRE_HEROE VARCHAR(200) PRIMARY KEY, NIVEL INT NOT NULL,VIDA INT NOT NULL,FUERZA INT NOT NULL,DESTREZA INT NOT NULL,CONSTITUCION INT NOT NULL,INTELIGENCIA INT NOT NULL,SABIDURIA INT NOT NULL,CARISMA INT NOT NULL,RAZA VARCHAR(30) NOT NULL,CLASE VARCHAR(50) NOT NULL,JUGADOR VARCHAR(50),AVENTURA VARCHAR(50),MASTER VARCHAR(50),FOTO LONGBLOB,INFO VARCHAR(60000))");
+		stmt.executeUpdate("INSERT INTO HEROESTEMPORAL SELECT * FROM HEROES)");
+		stmt.executeUpdate("DELETE FROM HEROES");
+		ResultSet res;
+		ObjectInputStream entradaObjetos = new ObjectInputStream (conexion.getInputStream());
+		res = (ResultSet)entradaObjetos.readObject();
+		stmt.executeUpdate("DELETE FROM CLASES");
+		while(res.next()){
+			stmt.executeUpdate("Insert into CLASES (NOMBRE, FACULTADES, MAGICO, HABILIDADES, DADODEGOLPE) values ("+res.getString(1)+","+res.getString(2)+","+res.getByte(3)+","+res.getInt(4)+","+res.getInt(5)+")");
+		}
+		res = (ResultSet)entradaObjetos.readObject();
+		stmt.executeUpdate("DELETE FROM RAZAS");
+		while(res.next()){
+			stmt.executeUpdate("Insert into RAZAS (NOMBRE, FUERZAEXTRA, DESTREZAEXTRA, CONSTITUCIONEXTRA, INTELIGENCIAEXTRA, SABIDURIAEXTRA, CARISMAEXTRA, TAMANIO, CUALIDADES) values ("+res.getString(1)+","+res.getInt(2)+","+res.getInt(3)+","+res.getInt(4)+","+res.getInt(5)+","+res.getInt(6)+","+res.getInt(7)+","+res.getString(8)+","+res.getString(9)+")");
+		}
+		entradaObjetos.close();
+		stmt.executeUpdate("INSERT INTO HEROES SELECT * FROM HEROESTEMPORAL");
+		stmt.executeUpdate("DROP TABLE HEROESTEMPORAL");
+		stmt.close();
+	}
+	
 	/**
 	 * Devuelve una lista de aventureros filtrados. Con los parametros de entrada.
 	 * 
@@ -543,11 +577,11 @@ public class AlteraDatosBD {
 			} catch (Exception e) {
 			}
 			stmt.executeUpdate(
-					"CREATE TABLE HEROES(PUNTOSTOTALES INT NOT NULL,NOMBRE_HEROE VARCHAR(200) NOT NULL, NIVEL INT NOT NULL,VIDA INT NOT NULL,FUERZA INT NOT NULL,DESTREZA INT NOT NULL,CONSTITUCION INT NOT NULL,INTELIGENCIA INT NOT NULL,SABIDURIA INT NOT NULL,CARISMA INT NOT NULL,RAZA VARCHAR(30) NOT NULL,CLASE VARCHAR(50) NOT NULL,JUGADOR VARCHAR(50),AVENTURA VARCHAR(50),MASTER VARCHAR(50),FOTO LONGBLOB,INFO VARCHAR(60000))");
+					"CREATE TABLE CLASES (NOMBRE VARCHAR(50) PRIMARY KEY, FACULTADES VARCHAR(50000), MAGICO TINYINT NOT NULL,HABILIDADES INT NOT NULL,DADODEGOLPE INT NOT NULL)");
 			stmt.executeUpdate(
-					"CREATE TABLE CLASES (NOMBRE VARCHAR(50) NOT NULL, FACULTADES VARCHAR(50000), MAGICO TINYINT NOT NULL,HABILIDADES INT NOT NULL,DADODEGOLPE INT NOT NULL)");
+					"CREATE TABLE RAZAS (NOMBRE VARCHAR(30) PRIMARY KEY, FUERZAEXTRA INT NOT NULL,DESTREZAEXTRA INT NOT NULL,CONSTITUCIONEXTRA INT NOT NULL,INTELIGENCIAEXTRA INT NOT NULL,SABIDURIAEXTRA INT NOT NULL,CARISMAEXTRA INT NOT NULL,TAMANIO CHAR(1) NOT NULL,CUALIDADES VARCHAR(50000))");
 			stmt.executeUpdate(
-					"CREATE TABLE RAZAS (NOMBRE VARCHAR(30) NOT NULL, FUERZAEXTRA INT NOT NULL,DESTREZAEXTRA INT NOT NULL,CONSTITUCIONEXTRA INT NOT NULL,INTELIGENCIAEXTRA INT NOT NULL,SABIDURIAEXTRA INT NOT NULL,CARISMAEXTRA INT NOT NULL,TAMANIO CHAR(1) NOT NULL,CUALIDADES VARCHAR(50000))");
+					"CREATE TABLE HEROES(PUNTOSTOTALES INT NOT NULL,NOMBRE_HEROE VARCHAR(200) PRIMARY KEY, NIVEL INT NOT NULL,VIDA INT NOT NULL,FUERZA INT NOT NULL,DESTREZA INT NOT NULL,CONSTITUCION INT NOT NULL,INTELIGENCIA INT NOT NULL,SABIDURIA INT NOT NULL,CARISMA INT NOT NULL,RAZA VARCHAR(30) NOT NULL,CLASE VARCHAR(50) NOT NULL,JUGADOR VARCHAR(50),AVENTURA VARCHAR(50),MASTER VARCHAR(50),FOTO LONGBLOB,INFO VARCHAR(60000), FOREIGN KEY (CLASE) REFERENCES CLASES(NOMBRE), FOREIGN KEY (RAZA) REFERENCES RAZAS(NOMBRE))");
 			stmt.executeUpdate(
 					"Insert into CLASES (NOMBRE, FACULTADES, MAGICO, HABILIDADES, DADODEGOLPE) values ('BARBARO','"
 							+ "Procedentes de los gélidos yermos del norte y de las infernales junglas del sur, llegan guerreros no ya valientes, sino temerarios. Las gentes civilizadas los llaman bárbaros o bersérker y los tachan de ser personas impías, causantes del caos y culpables de haber cometido atrocidades. Sin embargo, estos \"bárbaros\" han demostrado su entereza y valía a todos sus posibles aliados y han dejado patentes sus recursos, astucia, perseverancia y falta de misericordia hacia los enemigos que los subestimaron.\n\nAventuras: ir de aventuras es el mejor recurso de los bárbaros para hacerse un lugar en la sociedad civilizada, pues no se acostumbrarían a la monotonía de tener que vigilar un lugar o realizar otras tareas rutinarias. Además, los bárbaros no ven problema alguno en los peligros, incertidumbres y vagabundeos que conlleva el irse de aventuras. Algunas veces incluso pueden irse de aventuras con la única intención de derrotar a sus enemigos más odiados. Por lo demás, sienten un marcado, desagrado hacia las cosas que consideran antinaturales, como los muertos vivientes, los demonios y los diablos.\n\nPeculiaridades: el bárbaro es excelente en la batalla; sin embargo, mientras que el guerrero hace gala de su entrenamiento y disciplina, los seguidores de esta clase muestran una poderosa rabia. Cuando se ven inmersos en su furia bersérker, los bárbaros se vuelven más fuertes y duros, teniendo una mayor facilidad para acabar con sus enemigos y resistir los ataques de éstos. Esta cólera suele dejarles sin aliento, y a pesar de que sus energía sólo les permiten llevar a cabo unas cuantas de estas espectaculares demostraciones al día, no suelen necesitar mucho más. Además, se sienten como en casa cuando están al aire libre, y pueden correr a gran velocidad.\n\nAlineamiento: los bárbaros nunca son legales. Podrán ser honorables, pero, en el fondo, también son salvajes. Su principal fuerza es su desenfreno, algo que un corazón legal no puede albergar. En el mejor de los casos, los bárbaros caóticos son libres y expresivos; en el peor, se dedican a la destrucción per se.\n\nReligión: algunos bárbaros desconfían de las religiones establecidas y prefieren relacionarse con el cosmos de una forma más natural e intuitiva. Sin embargo, otros son seguidores de deidades poderosas, como Kord, dios de la fuerza; Obad-Hai, dios de la naturaleza; o Erynthnul, dios de la matanza. Los bárbaros son capaces de mostrar una fiera devoción por su dios.\n\nTrasfondo: los de esta clase proceden de tierras sin civilizar o de tribus bárbaras en los límites de la civilización. Un aventurero bárbaro puede haberse visto atraído hasta tierras colonizadas por varias razones: la promesa de riqueza, haber huido del esclavista \"civilizado\" que lo capturó en su tierra, ser reclutado como soldado o haber huido de quienes invadieron su hogar. Los bárbaros no comparten ningún lazo entre sí, a menos que sean de la misma tribu o territorio; de hecho, no se ven a sí mismos como bárbaros, sino como combatientes.\n\nRazas: Los bárbaros humanos proceden de las lejanas tierras salvajes, situadas en los límites de la civilización. La mayoría de los bárbaros semiorcos viven enre los orcos antes de abandonarlos para dirigirse a tierras humanas. Los bárbaros enanos son muy raros y suelen proceder de imperios enanos próximos a la barbarie por culpa de las constantes guerras contra trasgoides, orcos y gigantes. Los bárbaros de otras razas son aún menos frecuentes.\n\nNo obstante, entre los humanoides brutales los bárbaros son más abundantes que los guerreros. Los orcos y los ogros es probable que sean bárbaros.\n\nOtras clases: al vivir en zonas agrestes, los bárbaros se sienten más cómodos en compañía de exploradores, druidas y clérigos de dioses de la naturaleza, como Obad-Hai o Ehlonna. Muchos bárbaros admiran el talento y la espontaneidad de los bardos, y algunos son entusiastas amantes de la música. Los bárbaros no confían en aquello que no comprenden, lo que incluye el arte de los magos, al que llaman \"magia de libro\". Para los bárbaros, los hechiceros resultan más comprensibles que los magos, aunque quizás se deba a que son más carismáticos. Los monjes, que se caracterizan por su forma práctica, estudiada y deliberada de combatir, pueden tenerlo difícil para ponerse de acuerdo con los bárbaros, aunque ambas clases no tienen por qué mostrarse necesariamente hostiles la una con la otra. Los bárbaros no tienen ninguna actitud especial en lo que se refiere a los clérigos, guerreros, paladines o pícaros.\n\nPapel en el juego: el papel principal que habitualmente desempeña un bárbao en un grupo de aventureros es el de especialista en combatir en primera línea. Ningún otro personaje puede igualar su inquebrantable resistencia. También puede ser un buen batidor, gracias a su velocidad, habilidades disponibles y sentido de las trampas.\n\nInformación sobre reglas de juego \n\nCaracterísticas: la Fuerza es importante para los bárbarod debido al papel que juega en combate, y varias de las habilidades de esta clase se basan en ella. La Destreza también les resulta útil, especialmente a los que visten armadura ligera, y la Sabiduría es importante para varias habilidades de la clase. Una puntuación elevada en Constitución permitirá a un bárbaro enfurecerse durante más tiempo (y probablemente vivir más tiempo, porque también tendrá más puntos de golpe).\n\nAlineamiento: cualquiera que no sea legal.\nDado de golpe: d12. \n\nHabilidades de clase: Artesanía (Int), Escuchar(Sab), Intimidar (Car), Montar (Des), Nadar (Fue), Saltar (Fue), Supervivencia (Sab), Trato con animales (Car), "
@@ -615,13 +649,6 @@ public class AlteraDatosBD {
 					"Insert into RAZAS (NOMBRE, FUERZAEXTRA, DESTREZAEXTRA, CONSTITUCIONEXTRA, INTELIGENCIAEXTRA, SABIDURIAEXTRA, CARISMAEXTRA, TAMANIO, CUALIDADES) values ('SEMIELFO',0,0,0,0,0,0,'M','RASGOS RACIALES DE LOS SEMIELFOS:\n\nMediano: como criaturas medianas, los semielfos carecen de bonificadores o penalizadores debidos al tamaño.\n\nLa velocidad base de los semielfos es de 30 pies.\n\nInmunidad a los conjuros y efectos mágicos de dormir, y bonificador +2 racial en los TS contra conjuros y efectos de encantamiento.\n\nVisión en la penumbra: los semielfos pueden ver el doble de bien que los humanos a la luz de las estrellas, de la luna, de una antorcha y demás situaciones en que haya una iluminación escada.\nCuando se encuentran en tales condiciones, conservan la capacidad de distinguir colores y detalles.\n\nBonificador +1 racial a las pruebas de Avistar, Buscar y Escuchar.\nLos semielfos carecen de la aptitud de los elfos para detectar puertas secretas con sólo pasar delante de ellas.\nPoseen unos sentidos agudizados, pero no tanto como los d elos elfos.\n\nBonificador +2 racial a los pruebas de Diplomacia y Reunir informacion: los semielfos se llevan bien con la gente por naturaleza.\n\nSangre élfica: para todos los efectos relacionados con la raza, los semielfos son considerados elfos.\nPor ejemplo: son tan vulnerables a los efectos especiales que afecten a los elfos como sus antepasados elfos, y pueden utilizar objetos mágicos sólo utilizables por estos.\n\nIdiomas automaticos: común y élfico.\nIdiomas adicionales: cualquiera (siempre que no se trate de lenguas secretas, como el druídico).\nLos semielfos poseen la misma versatilidad que los humanos, así como su amplia (aunque superficial) experiencia.\n\nClase predilecta: cualquiera. cuando se determine si un semielfo multiclase recibe una penalizacion a los PX, la clase en la que tenga mayor nivel no cuenta.')");
 			stmt.executeUpdate(
 					"Insert into RAZAS (NOMBRE, FUERZAEXTRA, DESTREZAEXTRA, CONSTITUCIONEXTRA, INTELIGENCIAEXTRA, SABIDURIAEXTRA, CARISMAEXTRA, TAMANIO, CUALIDADES) values ('SEMIORCO',+2,0,0,-2,0,-2,'M','RASGOS RACIALES DE LOS SEMIORCOS:\n\n+2 a Fuerza, -2 a Inteligencia, -2 a Carisma: los semiorcos son fuertes, pero su linaje orco hace que sean lerdos y toscos.\n\nMedianos: como criaturas medianas, los semiorcos carecen de bonificadores o penalizador debidos al tamaño.\n\nLa velocidad base de los semiorcos es de 30 pies.\n\nVision en la oscuridad: los semiorcos (y tambien orcos) pueden ver en la oscuridad hasta 60 pies de distancia. Esta clase de visión sólo permite ver en blanco y negro, pero, por lo demás, es igual que la vista normal. Los semiorcos podrán actuar a la perfección cuando no dispongan de luz alguna.\n\nSangre orca: para todos los efectos relacionados con la raza, los semiorcos son considerados orcos.\nPor ejemplo: son tan vulnerables a los efectos especiales que afecten a los orcos como sus antepasados orcos, y pueden utilizar objetos mágicos sólo utilizables por estos.\n\nIdiomas automáticos: común y orco.\nIdiomas adicionales: abisalm dracónico, gigante, gnoll y trasgo. Los semiorcos inteligentes (que son bastante escasos) conocen los idiomas de sus aliados y rivales.\n\nClase predilecta: bárbaro. en un semiorco multiclase, la clase de bárbaro no conta´ra a la hora de determinar si se sufre o no una penalizacion a los PX.')");
-			/*stmt.executeUpdate("ALTER TABLE RAZAS ADD CONSTRAINT pk_RAZAS PRIMARY KEY (NOMBRE)");
-			stmt.executeUpdate("ALTER TABLE CLASES ADD CONSTRAINT pk_CLASES PRIMARY KEY (NOMBRE)");
-			stmt.executeUpdate("ALTER TABLE HEROES ADD CONSTRAINT pk_HEROES PRIMARY KEY (NOMBRE_HEROE)");
-			stmt.executeUpdate(
-					"ALTER TABLE HEROES ADD CONSTRAINT fk_HEROES_CLASES FOREIGN KEY (CLASE) REFERENCES CLASES(NOMBRE)");
-			stmt.executeUpdate(
-					"ALTER TABLE HEROES ADD CONSTRAINT fk_HEROES_RAZAS FOREIGN KEY (RAZA) REFERENCES RAZAS(NOMBRE)");*/
 			stmt.executeUpdate(
 					"Insert into HEROES (PUNTOSTOTALES, NOMBRE_HEROE, NIVEL, VIDA, FUERZA, DESTREZA, CONSTITUCION, INTELIGENCIA, SABIDURIA, CARISMA, RAZA, CLASE, JUGADOR, AVENTURA, MASTER, FOTO, INFO) values (0,'Paco',1,15,18,10,16,8,8,8,'HUMANO','MONJE','Paco',NULL,NULL,NULL,NULL)");
 			stmt.close();

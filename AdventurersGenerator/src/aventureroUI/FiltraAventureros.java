@@ -141,7 +141,7 @@ public class FiltraAventureros extends JDialog {
 		setAlwaysOnTop(true);
 		setTitle("Filtro");
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		setBounds(_AnchoX, _AltoY, 259, 182);
+		setBounds(_AnchoX, _AltoY, 265, 200);
 		setResizable(false);
 		setIconImage(Toolkit.getDefaultToolkit()
 				.getImage(VentanaAventurero.class.getResource("/fotos/fotos.ico/dnd_logo.png")));
