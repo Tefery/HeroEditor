@@ -1,10 +1,10 @@
 package aventureroDAO;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,6 +20,7 @@ import javax.swing.JOptionPane;
 import aventureroCORE.Aventurero;
 import aventureroCORE.Clase;
 import aventureroCORE.Raza;
+import aventureroUI.VentanaAventurero;
 
 /**
  * Contiene todos los metodos para alterar la BD. Metodos para alterar una BD en
@@ -50,39 +51,91 @@ public class AlteraDatosBD {
 			resetDatabase();
 	}
 
+	public void buscaActualizaciones(AlteraDatosBD db, VentanaAventurero va) {
+		new HiloActualiza("127.0.0.1", 3333, db, va);
+	}
+
+	public int versionBaseDeDatos() throws SQLException {
+		Statement stmt = conn.createStatement();
+		ResultSet res = stmt.executeQuery("SELECT VERSION FROM CONFIGURACION");
+		res.next();
+		int vers = res.getInt(1);
+		stmt.close();
+		return vers;
+	}
+
 	/**
 	 * Actualiza la base de datos con la información que llega del servidor
 	 * 
-	 * @throws SQLException, IOException, ClassNotFoundException.
-	 *             Cuando no es capaz de establecer la conexión.
+	 * @throws SQLException,
+	 *             IOException, ClassNotFoundException. Cuando no es capaz de
+	 *             establecer la conexión.
 	 * @param conexion
-	 * 			La conexión con el servidor de actualizaciones.
+	 *            La conexión con el servidor de actualizaciones.
+	 * @param salida
+	 * @param entrada
 	 */
-	public void actualizaDataBase(Socket conexion) throws SQLException, IOException, ClassNotFoundException {
+	public void actualizaDataBase(Socket conexion, BufferedReader entrada, PrintStream salida)
+			throws SQLException, IOException, ClassNotFoundException {
 		Statement stmt = conn.createStatement();
-		stmt.executeUpdate("CREATE TABLE HEROESTEMPORAL(PUNTOSTOTALES INT NOT NULL,NOMBRE_HEROE VARCHAR(200) PRIMARY KEY, NIVEL INT NOT NULL,VIDA INT NOT NULL,FUERZA INT NOT NULL,DESTREZA INT NOT NULL,CONSTITUCION INT NOT NULL,INTELIGENCIA INT NOT NULL,SABIDURIA INT NOT NULL,CARISMA INT NOT NULL,RAZA VARCHAR(30) NOT NULL,CLASE VARCHAR(50) NOT NULL,JUGADOR VARCHAR(50),AVENTURA VARCHAR(50),MASTER VARCHAR(50),FOTO LONGBLOB,INFO VARCHAR(60000))");
-		stmt.executeUpdate("INSERT INTO HEROESTEMPORAL SELECT * FROM HEROES)");
+
+		stmt.executeUpdate("DELETE FROM HEROESTEMPORAL");
+		stmt.executeUpdate("INSERT INTO HEROESTEMPORAL SELECT * FROM HEROES");
 		stmt.executeUpdate("DELETE FROM HEROES");
-		ResultSet res;
-		ObjectInputStream entradaObjetos = new ObjectInputStream (conexion.getInputStream());
-		res = (ResultSet)entradaObjetos.readObject();
+		int canClases = Integer.parseInt(entrada.readLine());
 		stmt.executeUpdate("DELETE FROM CLASES");
-		while(res.next()){
-			stmt.executeUpdate("Insert into CLASES (NOMBRE, FACULTADES, MAGICO, HABILIDADES, DADODEGOLPE) values ("+res.getString(1)+","+res.getString(2)+","+res.getByte(3)+","+res.getInt(4)+","+res.getInt(5)+")");
-		}
-		res = (ResultSet)entradaObjetos.readObject();
 		stmt.executeUpdate("DELETE FROM RAZAS");
-		while(res.next()){
-			stmt.executeUpdate("Insert into RAZAS (NOMBRE, FUERZAEXTRA, DESTREZAEXTRA, CONSTITUCIONEXTRA, INTELIGENCIAEXTRA, SABIDURIAEXTRA, CARISMAEXTRA, TAMANIO, CUALIDADES) values ("+res.getString(1)+","+res.getInt(2)+","+res.getInt(3)+","+res.getInt(4)+","+res.getInt(5)+","+res.getInt(6)+","+res.getInt(7)+","+res.getString(8)+","+res.getString(9)+")");
-		}
-		entradaObjetos.close();
-		stmt.executeUpdate("INSERT INTO HEROES SELECT * FROM HEROESTEMPORAL");
-		stmt.executeUpdate("DROP TABLE HEROESTEMPORAL");
 		stmt.close();
+		PreparedStatement pstmt = conn.prepareStatement(
+				"Insert into CLASES (NOMBRE, FACULTADES, MAGICO, HABILIDADES, DADODEGOLPE) values (?,?,?,?,?)");
+		System.out.println(canClases);
+		String stringLargo = "";
+		String mensajeEntrada = "";
+		for (int i = 0; i < canClases; i++) {
+			pstmt.setString(1, entrada.readLine());
+			pstmt.setByte(3, Byte.parseByte(entrada.readLine()));
+			pstmt.setInt(4, Integer.parseInt(entrada.readLine()));
+			pstmt.setInt(5, Integer.parseInt(entrada.readLine()));
+			mensajeEntrada = entrada.readLine();
+			while (!mensajeEntrada.equals("FiNaL")) {
+				stringLargo += mensajeEntrada;
+				mensajeEntrada = entrada.readLine();
+			}
+			pstmt.setString(2, stringLargo);
+			pstmt.executeUpdate();
+			stringLargo = "";
+		}
+		int canRazas = Integer.parseInt(entrada.readLine());
+		pstmt = conn.prepareStatement(
+				"Insert into RAZAS (NOMBRE, FUERZAEXTRA, DESTREZAEXTRA, CONSTITUCIONEXTRA, INTELIGENCIAEXTRA, SABIDURIAEXTRA, CARISMAEXTRA, TAMANIO, CUALIDADES) values (?,?,?,?,?,?,?,?,?)");
+		for (int i = 0; i < canRazas; i++) {
+			pstmt.setString(1, entrada.readLine());
+			pstmt.setInt(2, Integer.parseInt(entrada.readLine()));
+			pstmt.setInt(3, Integer.parseInt(entrada.readLine()));
+			pstmt.setInt(4, Integer.parseInt(entrada.readLine()));
+			pstmt.setInt(5, Integer.parseInt(entrada.readLine()));
+			pstmt.setInt(6, Integer.parseInt(entrada.readLine()));
+			pstmt.setInt(7, Integer.parseInt(entrada.readLine()));
+			pstmt.setString(8, entrada.readLine());
+			mensajeEntrada = entrada.readLine();
+			while (!mensajeEntrada.equals("FiNaL")) {
+				stringLargo += mensajeEntrada;
+				mensajeEntrada = entrada.readLine();
+			}
+			pstmt.setString(9, stringLargo);
+			pstmt.executeUpdate();
+			stringLargo = "";
+		}
+		pstmt.close();
+		stmt = conn.createStatement();
+		stmt.executeUpdate("INSERT INTO HEROES SELECT * FROM HEROESTEMPORAL");
+		stmt.close();
+
 	}
-	
+
 	/**
-	 * Devuelve una lista de aventureros filtrados. Con los parametros de entrada.
+	 * Devuelve una lista de aventureros filtrados. Con los parametros de
+	 * entrada.
 	 * 
 	 * @param nombre
 	 *            Contenido en el nombre.
@@ -319,16 +372,19 @@ public class AlteraDatosBD {
 	 *            Nombre de la {@link aventureroCORE.Clase} a buscar.
 	 * @return <code>true</code> si existe la {@link aventureroCORE.Clase},
 	 *         <code>false</code> en caso contrario.
+	 * @throws SQLException
 	 */
-	public static boolean claseExist(String nombre) {
+	public boolean claseExist(String nombre) throws SQLException {
 		nombre = nombre.toUpperCase();
-		if (nombre.equals("BARBARO") || nombre.equals("BARDO") || nombre.equals("CLERIGO") || nombre.equals("DRUIDA")
-				|| nombre.equals("EXPLORADOR") || nombre.equals("GUERRERO") || nombre.equals("HECHICERO")
-				|| nombre.equals("MAGO") || nombre.equals("MONJE") || nombre.equals("PALADIN")
-				|| nombre.equals("PICARO"))
-			return true;
-		else
-			return false;
+		Statement stmt = conn.createStatement();
+		ResultSet res = stmt.executeQuery("SELECT NOMBRE FROM CLASES");
+		while (res.next()) {
+			if (nombre.equals(res.getString(1))) {
+				stmt.close();
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -339,14 +395,19 @@ public class AlteraDatosBD {
 	 *            Nombre de la {@link aventureroCORE.Raza} a buscar.
 	 * @return <code>true</code> si existe la {@link aventureroCORE.Raza},
 	 *         <code>false</code> en caso contrario.
+	 * @throws SQLException
 	 */
-	public static boolean razaExist(String nombre) {
+	public boolean razaExist(String nombre) throws SQLException {
 		nombre = nombre.toUpperCase();
-		if (nombre.equals("ELFO") || nombre.equals("ENANO") || nombre.equals("GNOMO") || nombre.equals("HUMANO")
-				|| nombre.equals("MEDIANO") || nombre.equals("SEMIELFO") || nombre.equals("SEMIORCO"))
-			return true;
-		else
-			return false;
+		Statement stmt = conn.createStatement();
+		ResultSet res = stmt.executeQuery("SELECT NOMBRE FROM RAZAS");
+		while (res.next()) {
+			if (nombre.equals(res.getString(1))) {
+				stmt.close();
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -379,8 +440,9 @@ public class AlteraDatosBD {
 	 *            Nombre a buscar
 	 * @return <code>true</code> si existe, <code>false</code> en caso
 	 *         contrario.
+	 * @throws SQLException
 	 */
-	public static boolean exist(String nombre) {
+	public boolean exist(String nombre) throws SQLException {
 		if (razaExist(nombre) || esLeyenda(nombre) || claseExist(nombre))
 			return true;
 		return false;
@@ -565,6 +627,14 @@ public class AlteraDatosBD {
 
 			Statement stmt = conn.createStatement();
 			try {
+				stmt.executeUpdate("DROP TABLE CONFIGURACION");
+			} catch (Exception e) {
+			}
+			try {
+				stmt.executeUpdate("DROP TABLE HEROESTEMPORAL");
+			} catch (Exception e) {
+			}
+			try {
 				stmt.executeUpdate("DROP TABLE HEROES");
 			} catch (Exception e) {
 			}
@@ -576,6 +646,9 @@ public class AlteraDatosBD {
 				stmt.executeUpdate("DROP TABLE RAZAS");
 			} catch (Exception e) {
 			}
+			stmt.executeUpdate(
+					"CREATE TABLE HEROESTEMPORAL(PUNTOSTOTALES INT NOT NULL,NOMBRE_HEROE VARCHAR(200) PRIMARY KEY, NIVEL INT NOT NULL,VIDA INT NOT NULL,FUERZA INT NOT NULL,DESTREZA INT NOT NULL,CONSTITUCION INT NOT NULL,INTELIGENCIA INT NOT NULL,SABIDURIA INT NOT NULL,CARISMA INT NOT NULL,RAZA VARCHAR(30) NOT NULL,CLASE VARCHAR(50) NOT NULL,JUGADOR VARCHAR(50),AVENTURA VARCHAR(50),MASTER VARCHAR(50),FOTO LONGBLOB,INFO VARCHAR(60000))");
+			stmt.executeUpdate("CREATE TABLE CONFIGURACION(VERSION INT PRIMARY KEY)");
 			stmt.executeUpdate(
 					"CREATE TABLE CLASES (NOMBRE VARCHAR(50) PRIMARY KEY, FACULTADES VARCHAR(50000), MAGICO TINYINT NOT NULL,HABILIDADES INT NOT NULL,DADODEGOLPE INT NOT NULL)");
 			stmt.executeUpdate(
@@ -651,6 +724,7 @@ public class AlteraDatosBD {
 					"Insert into RAZAS (NOMBRE, FUERZAEXTRA, DESTREZAEXTRA, CONSTITUCIONEXTRA, INTELIGENCIAEXTRA, SABIDURIAEXTRA, CARISMAEXTRA, TAMANIO, CUALIDADES) values ('SEMIORCO',+2,0,0,-2,0,-2,'M','RASGOS RACIALES DE LOS SEMIORCOS:\n\n+2 a Fuerza, -2 a Inteligencia, -2 a Carisma: los semiorcos son fuertes, pero su linaje orco hace que sean lerdos y toscos.\n\nMedianos: como criaturas medianas, los semiorcos carecen de bonificadores o penalizador debidos al tamaño.\n\nLa velocidad base de los semiorcos es de 30 pies.\n\nVision en la oscuridad: los semiorcos (y tambien orcos) pueden ver en la oscuridad hasta 60 pies de distancia. Esta clase de visión sólo permite ver en blanco y negro, pero, por lo demás, es igual que la vista normal. Los semiorcos podrán actuar a la perfección cuando no dispongan de luz alguna.\n\nSangre orca: para todos los efectos relacionados con la raza, los semiorcos son considerados orcos.\nPor ejemplo: son tan vulnerables a los efectos especiales que afecten a los orcos como sus antepasados orcos, y pueden utilizar objetos mágicos sólo utilizables por estos.\n\nIdiomas automáticos: común y orco.\nIdiomas adicionales: abisalm dracónico, gigante, gnoll y trasgo. Los semiorcos inteligentes (que son bastante escasos) conocen los idiomas de sus aliados y rivales.\n\nClase predilecta: bárbaro. en un semiorco multiclase, la clase de bárbaro no conta´ra a la hora de determinar si se sufre o no una penalizacion a los PX.')");
 			stmt.executeUpdate(
 					"Insert into HEROES (PUNTOSTOTALES, NOMBRE_HEROE, NIVEL, VIDA, FUERZA, DESTREZA, CONSTITUCION, INTELIGENCIA, SABIDURIA, CARISMA, RAZA, CLASE, JUGADOR, AVENTURA, MASTER, FOTO, INFO) values (0,'Paco',1,15,18,10,16,8,8,8,'HUMANO','MONJE','Paco',NULL,NULL,NULL,NULL)");
+			stmt.executeUpdate("Insert into CONFIGURACION (VERSION) values (1)");
 			stmt.close();
 			heroesDeLeyenda();
 
@@ -718,8 +792,7 @@ public class AlteraDatosBD {
 				"Insert into HEROES (PUNTOSTOTALES, NOMBRE_HEROE, NIVEL, VIDA, FUERZA, DESTREZA, CONSTITUCION, INTELIGENCIA, SABIDURIA, CARISMA, RAZA, CLASE, JUGADOR, AVENTURA, MASTER, FOTO, INFO) values (0,'PINKIE PIE',99,99999,99999,99999,99999,99999,99999,99999,'GNOMO','BARDO','MUFFINS',NULL,NULL,?,'TARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTATARTA')");
 		stmt.setBytes(1, toBytesInterno(ubicacion + "pinkiepie.gif"));
 		stmt.executeUpdate();
-		stmt = conn.prepareStatement("commit");
-		//stmt.executeUpdate();
 		stmt.close();
+
 	}
 }

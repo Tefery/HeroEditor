@@ -191,6 +191,9 @@ public class VentanaAventurero extends JFrame {
 		actualizaTodo();
 
 		Clases.setSelectedItem("GUERRERO");
+		
+		if(Conectado)
+			Consul.buscaActualizaciones(Consul, this);
 	}
 
 	/**
@@ -208,16 +211,19 @@ public class VentanaAventurero extends JFrame {
 	 *            Nombre del <code>String</string> seleccionado.
 	 */
 	private void queHaSeleccionado(String nombre) {
-		if (Consul.aventureroExist(nombre)) {
-			cambiaAventurero(nombre);
-		} else if (AlteraDatosBD.claseExist(nombre)) {
-			VentDesClase = new VentanaDescripcion(Consul.getClase(nombre.toUpperCase()), PTerra);
-			VentDesClase.setVisible(true);
-		} else if (AlteraDatosBD.razaExist(nombre)) {
-			VentDesRaza = new VentanaDescripcion(Consul.getRaza(nombre.toUpperCase()), PTerra);
-			VentDesRaza.setVisible(true);
+		try {
+			if (Consul.aventureroExist(nombre)) {
+				cambiaAventurero(nombre);
+			} else if (Consul.claseExist(nombre)) {
+				VentDesClase = new VentanaDescripcion(Consul.getClase(nombre.toUpperCase()), PTerra);
+				VentDesClase.setVisible(true);
+			} else if (Consul.razaExist(nombre)) {
+				VentDesRaza = new VentanaDescripcion(Consul.getRaza(nombre.toUpperCase()), PTerra);
+				VentDesRaza.setVisible(true);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		//construyeArbol();
 	}
 
 	/**
@@ -452,7 +458,7 @@ public class VentanaAventurero extends JFrame {
 	 * 
 	 */
 
-	protected void construyeArbol() {
+	public void construyeArbol() {
 		if (Filtro == null && Conectado) {
 			Filtro = Consul.getListaHeroes();
 		}
