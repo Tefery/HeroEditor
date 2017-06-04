@@ -68,7 +68,10 @@ public class VentanaDescripcion extends JFrame {
 		} else if (claseoraza instanceof Raza) {
 			Raza raza = (Raza) claseoraza;
 			Nombre = ((Raza) claseoraza).getNombre();
+			try {
 			Foto = new ImageIcon(raza.getFoto());
+			} catch (Exception e) {
+			}
 			Descripcion = raza.getDescripcion();
 			Titulo = "El " + raza.getNombre().substring(0, 1)
 					+ raza.getNombre().substring(1, raza.getNombre().length()).toLowerCase();
@@ -112,9 +115,13 @@ public class VentanaDescripcion extends JFrame {
 		JPanel PanelFoto = new JPanel();
 		PanelPrincipal.add(PanelFoto, BorderLayout.EAST);
 		PanelFoto.setLayout(new BorderLayout(0, 0));
-
+		
+		try {
 		JLabel LabelFoto = new JLabel(VentanaAventurero.escalaFoto(Foto));
 		PanelFoto.add(LabelFoto);
+		} catch (Exception e) {
+			
+		}
 
 		JPanel PanelDescripcion = new JPanel();
 		PanelPrincipal.add(PanelDescripcion, BorderLayout.CENTER);

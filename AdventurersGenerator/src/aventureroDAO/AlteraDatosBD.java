@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.sql.rowset.serial.SerialException;
@@ -78,21 +79,35 @@ public class AlteraDatosBD {
 	public void actualizaDataBase(Socket conexion, BufferedReader entrada, PrintStream salida)
 			throws SQLException, IOException, ClassNotFoundException {
 		Statement stmt = conn.createStatement();
-
-		stmt.executeUpdate("DELETE FROM HEROESTEMPORAL");
-		stmt.executeUpdate("INSERT INTO HEROESTEMPORAL SELECT * FROM HEROES");
-		stmt.executeUpdate("DELETE FROM HEROES");
+		ResultSet res = stmt.executeQuery("SELECT NOMBRE FROM CLASES");
+		HashSet<String> NombresClases = new HashSet<String>();
+		while (res.next()) {
+			NombresClases.add(res.getString(1));
+		}
+		res = stmt.executeQuery("SELECT NOMBRE FROM RAZAS");
+		HashSet<String> NombresRazas = new HashSet<String>();
+		while (res.next()) {
+			NombresRazas.add(res.getString(1));
+		}
+		stmt.close();
+		// stmt.executeUpdate("DELETE FROM HEROESTEMPORAL");
+		// stmt.executeUpdate("INSERT INTO HEROESTEMPORAL SELECT * FROM
+		// HEROES");
+		// stmt.executeUpdate("DELETE FROM HEROES");
 		int canClases = Integer.parseInt(entrada.readLine());
-		stmt.executeUpdate("DELETE FROM CLASES");
-		stmt.executeUpdate("DELETE FROM RAZAS");
+		// stmt.executeUpdate("DELETE FROM CLASES");
+		// stmt.executeUpdate("DELETE FROM RAZAS");
 		stmt.close();
 		PreparedStatement pstmt = conn.prepareStatement(
 				"Insert into CLASES (NOMBRE, FACULTADES, MAGICO, HABILIDADES, DADODEGOLPE) values (?,?,?,?,?)");
-		System.out.println(canClases);
 		String stringLargo = "";
 		String mensajeEntrada = "";
+		String nombreClase = "";
 		for (int i = 0; i < canClases; i++) {
-			pstmt.setString(1, entrada.readLine());
+			stringLargo = "";
+			nombreClase = "";
+			nombreClase = entrada.readLine();
+			pstmt.setString(1, nombreClase);
 			pstmt.setByte(3, Byte.parseByte(entrada.readLine()));
 			pstmt.setInt(4, Integer.parseInt(entrada.readLine()));
 			pstmt.setInt(5, Integer.parseInt(entrada.readLine()));
@@ -102,14 +117,18 @@ public class AlteraDatosBD {
 				mensajeEntrada = entrada.readLine();
 			}
 			pstmt.setString(2, stringLargo);
+			if (NombresClases.contains(nombreClase))
+				continue;
 			pstmt.executeUpdate();
-			stringLargo = "";
 		}
 		int canRazas = Integer.parseInt(entrada.readLine());
 		pstmt = conn.prepareStatement(
 				"Insert into RAZAS (NOMBRE, FUERZAEXTRA, DESTREZAEXTRA, CONSTITUCIONEXTRA, INTELIGENCIAEXTRA, SABIDURIAEXTRA, CARISMAEXTRA, TAMANIO, CUALIDADES) values (?,?,?,?,?,?,?,?,?)");
 		for (int i = 0; i < canRazas; i++) {
-			pstmt.setString(1, entrada.readLine());
+			stringLargo = "";
+			nombreClase = "";
+			nombreClase = entrada.readLine();
+			pstmt.setString(1, nombreClase);
 			pstmt.setInt(2, Integer.parseInt(entrada.readLine()));
 			pstmt.setInt(3, Integer.parseInt(entrada.readLine()));
 			pstmt.setInt(4, Integer.parseInt(entrada.readLine()));
@@ -123,13 +142,15 @@ public class AlteraDatosBD {
 				mensajeEntrada = entrada.readLine();
 			}
 			pstmt.setString(9, stringLargo);
+			if (NombresRazas.contains(nombreClase))
+				continue;
 			pstmt.executeUpdate();
-			stringLargo = "";
 		}
 		pstmt.close();
-		stmt = conn.createStatement();
-		stmt.executeUpdate("INSERT INTO HEROES SELECT * FROM HEROESTEMPORAL");
-		stmt.close();
+		// stmt = conn.createStatement();
+		// stmt.executeUpdate("INSERT INTO HEROES SELECT * FROM
+		// HEROESTEMPORAL");
+		// stmt.close();
 
 	}
 
@@ -577,10 +598,14 @@ public class AlteraDatosBD {
 	 * @return Una imagen en mapa de <code>byte[]</code>.
 	 */
 	public static byte[] claseRazaToBytes(String string) {
-		if (!string.substring(string.length() - 3).equals("gif"))
-			return toBytesInterno("/fotos/fotos.clasesRazas/" + string.toLowerCase() + ".jpg");
-		else
-			return toBytesInterno("/fotos/fotos.clasesRazas/" + string);
+		try {
+			if (!string.substring(string.length() - 3).equals("gif"))
+				return toBytesInterno("/fotos/fotos.clasesRazas/" + string.toLowerCase() + ".jpg");
+			else
+				return toBytesInterno("/fotos/fotos.clasesRazas/" + string);
+		} catch (Exception e) {
+			return toBytesInterno("/fotos/fotos.clasesRazas/" + "unknow.jpg");
+		}
 	}
 
 	/**

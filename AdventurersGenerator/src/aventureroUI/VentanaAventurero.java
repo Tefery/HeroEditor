@@ -190,9 +190,11 @@ public class VentanaAventurero extends JFrame {
 		initComponents();
 		actualizaTodo();
 
+		Razas.setSelectedIndex(3);
+
 		Clases.setSelectedItem("GUERRERO");
-		
-		if(Conectado)
+
+		if (Conectado)
 			Consul.buscaActualizaciones(Consul, this);
 	}
 
@@ -378,7 +380,7 @@ public class VentanaAventurero extends JFrame {
 		if (JOptionPane.showConfirmDialog(null, "¿Esta seguro? Perderá todos sus heroes", "Atención", 0, 3) == 0) {
 			Consul.resetDatabase();
 			Filtro = null;
-			construyeArbol();
+			actualizaTodo();
 		}
 	}
 
@@ -660,9 +662,15 @@ public class VentanaAventurero extends JFrame {
 	 * 
 	 */
 	private void actualizaListaClases() {
+		String seleccionado = null;
+		if (Clases.getSelectedItem() != null)
+			seleccionado = (String) Clases.getSelectedItem();
+		Clases.removeAllItems();
 		for (String s : Consul.getListaClases()) {
 			Clases.addItem(s);
 		}
+		if (seleccionado != null)
+			Clases.setSelectedItem(seleccionado);
 	}
 
 	/**
@@ -670,9 +678,15 @@ public class VentanaAventurero extends JFrame {
 	 * 
 	 */
 	private void actualizaListaRazas() {
+		String seleccionado = null;
+		if (Razas.getSelectedItem() != null)
+			seleccionado = (String) Razas.getSelectedItem();
+		Razas.removeAllItems();
 		for (String s : Consul.getListaRazas()) {
 			Razas.addItem(s);
 		}
+		if (seleccionado != null)
+			Razas.setSelectedItem(seleccionado);
 	}
 
 	/**
@@ -680,9 +694,15 @@ public class VentanaAventurero extends JFrame {
 	 * 
 	 */
 	private void actualizaOpciones() {
+		String seleccion = null;
+		if (OpcionFoto.getSelectedItem() != null)
+			seleccion = (String) OpcionFoto.getSelectedItem();
+		OpcionFoto.removeAllItems();
 		OpcionFoto.addItem("CLASE");
 		OpcionFoto.addItem("RAZA");
 		OpcionFoto.addItem("PERSONALIZADA");
+		if (seleccion != null)
+			OpcionFoto.setSelectedItem(seleccion);
 	}
 
 	/**
@@ -708,13 +728,12 @@ public class VentanaAventurero extends JFrame {
 	 * @see #actualizaListaClases()
 	 * @see #actualizaListaRazas()
 	 */
-	private void actualizaTodo() {
+	public void actualizaTodo() {
 		construyeArbol();
 		actualizaOpciones();
 		if (Conectado) {
 			actualizaListaClases();
 			actualizaListaRazas();
-			Razas.setSelectedIndex(3);
 		} else {
 			Clases.addItem("GUERRERO");
 			Razas.addItem("HUMANO");
@@ -1070,37 +1089,40 @@ public class VentanaAventurero extends JFrame {
 
 			Razas.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					Aventurero.cambiaRaza(Razas.getSelectedItem().toString());
-					actualizaStats();
-					actualizaLabels();
-					if (isVisible() && OpcionFoto.getSelectedItem().equals("RAZA"))
-						opciFoto("RAZA");
-					sucio(true);
+					if (Razas.getSelectedItem() != null) {
+						Aventurero.cambiaRaza(Razas.getSelectedItem().toString());
+						actualizaStats();
+						actualizaLabels();
+						if (isVisible() && OpcionFoto.getSelectedItem().equals("RAZA"))
+							opciFoto("RAZA");
+						sucio(true);
+					}
 				}
 			});
 
 			Clases.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					Aventurero.cambiaClase(Clases.getSelectedItem().toString());
-					actualizaStats();
-					actualizaLabels();
-					if (isVisible() && OpcionFoto.getSelectedItem().equals("CLASE"))
-						opciFoto("CLASE");
-					sucio(true);
+					if (Clases.getSelectedItem() != null) {
+						Aventurero.cambiaClase(Clases.getSelectedItem().toString());
+						actualizaStats();
+						actualizaLabels();
+						if (isVisible() && OpcionFoto.getSelectedItem().equals("CLASE"))
+							opciFoto("CLASE");
+						sucio(true);
+					}
 				}
 			});
-			
+
 		}
 		OpcionFoto.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (isVisible()) {
-					opciFoto(OpcionFoto.getSelectedItem().toString());
+					if (OpcionFoto.getSelectedItem() != null)
+						opciFoto(OpcionFoto.getSelectedItem().toString());
 				}
 			}
 		});
 
-		
-		
 		PanelCaracteristicas = new JPanel();
 		PanelStats.add(PanelCaracteristicas, BorderLayout.CENTER);
 		PanelCaracteristicas.setLayout(new GridLayout(0, 1, 0, 0));

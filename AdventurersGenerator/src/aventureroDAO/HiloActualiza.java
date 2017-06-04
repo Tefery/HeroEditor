@@ -40,7 +40,7 @@ public class HiloActualiza extends Thread {
 						0, 3) == 0) {
 					salida.println("outD");
 					db.actualizaDataBase(conexion, entrada, salida);
-					va.construyeArbol();
+					va.actualizaTodo();
 				} else {
 					salida.println("close");
 				}
@@ -49,9 +49,7 @@ public class HiloActualiza extends Thread {
 			}
 			conexion.close();
 		} catch (IOException | HeadlessException | SQLException e) {
-			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		}
 	}
 }
