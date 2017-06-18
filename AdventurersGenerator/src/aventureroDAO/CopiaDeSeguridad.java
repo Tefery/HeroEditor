@@ -21,12 +21,6 @@ public class CopiaDeSeguridad extends Thread {
 			File inFile = new File(ruta);
 			File outFile = new File(ruta+".old");
 
-			/*FileInputStream in = new FileInputStream(inFile);
-			FileOutputStream out = new FileOutputStream(outFile);
-
-			int c;
-			while ((c = in.read()) != -1)
-				out.write(c);*/
 			InputStream in = new FileInputStream(inFile);
 			OutputStream out = new FileOutputStream(outFile);
 			
