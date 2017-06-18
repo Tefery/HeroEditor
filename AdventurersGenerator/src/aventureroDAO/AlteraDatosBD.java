@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,6 +38,8 @@ import aventureroUI.VentanaAventurero;
  */
 public class AlteraDatosBD {
 	Connection conn;
+	
+	CopiaDeSeguridad copia = new CopiaDeSeguridad(System.getProperty("user.home")+"\\HeroEditor\\HEROEDITOR.db");
 
 	/**
 	 * Crea un AlteraDatosBD. Establece la conexion creando una
@@ -52,8 +55,8 @@ public class AlteraDatosBD {
 			resetDatabase();
 	}
 
-	public void buscaActualizaciones(AlteraDatosBD db, VentanaAventurero va) {
-		new HiloActualiza("127.0.0.1", 3333, db, va);
+	public void buscaActualizaciones(String ip, AlteraDatosBD db, VentanaAventurero va) throws UnknownHostException, IOException {
+		new HiloActualiza(ip, 3333, db, va);
 	}
 
 	public int versionBaseDeDatos() throws SQLException {
@@ -90,14 +93,7 @@ public class AlteraDatosBD {
 			NombresRazas.add(res.getString(1));
 		}
 		stmt.close();
-		// stmt.executeUpdate("DELETE FROM HEROESTEMPORAL");
-		// stmt.executeUpdate("INSERT INTO HEROESTEMPORAL SELECT * FROM
-		// HEROES");
-		// stmt.executeUpdate("DELETE FROM HEROES");
 		int canClases = Integer.parseInt(entrada.readLine());
-		// stmt.executeUpdate("DELETE FROM CLASES");
-		// stmt.executeUpdate("DELETE FROM RAZAS");
-		stmt.close();
 		PreparedStatement pstmt = conn.prepareStatement(
 				"Insert into CLASES (NOMBRE, FACULTADES, MAGICO, HABILIDADES, DADODEGOLPE) values (?,?,?,?,?)");
 		String stringLargo = "";
@@ -146,12 +142,13 @@ public class AlteraDatosBD {
 				continue;
 			pstmt.executeUpdate();
 		}
+		stmt = conn.createStatement();
+		stmt.executeUpdate("UPDATE CONFIGURACION SET VERSION = "+entrada.readLine());
 		pstmt.close();
-		// stmt = conn.createStatement();
-		// stmt.executeUpdate("INSERT INTO HEROES SELECT * FROM
-		// HEROESTEMPORAL");
-		// stmt.close();
+	}
 
+	private void copiaDeSeguridad() {
+		copia.start();
 	}
 
 	/**
@@ -500,6 +497,8 @@ public class AlteraDatosBD {
 		stmt.executeUpdate();
 
 		stmt.close();
+		
+		copiaDeSeguridad();
 	}
 
 	/**
@@ -641,6 +640,17 @@ public class AlteraDatosBD {
 		return buffer.toByteArray();
 	}
 
+	public void borraHeroes() {
+		try {
+		Statement stmt = conn.createStatement();
+		stmt.executeUpdate("DELETE FROM HEROES");
+		stmt.close();
+		heroesDeLeyenda();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Inicializa la BD. Comienza intentando borrar las tablas, en caso de
 	 * necesitar un reinicio de BD.
@@ -671,8 +681,6 @@ public class AlteraDatosBD {
 				stmt.executeUpdate("DROP TABLE RAZAS");
 			} catch (Exception e) {
 			}
-			stmt.executeUpdate(
-					"CREATE TABLE HEROESTEMPORAL(PUNTOSTOTALES INT NOT NULL,NOMBRE_HEROE VARCHAR(200) PRIMARY KEY, NIVEL INT NOT NULL,VIDA INT NOT NULL,FUERZA INT NOT NULL,DESTREZA INT NOT NULL,CONSTITUCION INT NOT NULL,INTELIGENCIA INT NOT NULL,SABIDURIA INT NOT NULL,CARISMA INT NOT NULL,RAZA VARCHAR(30) NOT NULL,CLASE VARCHAR(50) NOT NULL,JUGADOR VARCHAR(50),AVENTURA VARCHAR(50),MASTER VARCHAR(50),FOTO LONGBLOB,INFO VARCHAR(60000))");
 			stmt.executeUpdate("CREATE TABLE CONFIGURACION(VERSION INT PRIMARY KEY)");
 			stmt.executeUpdate(
 					"CREATE TABLE CLASES (NOMBRE VARCHAR(50) PRIMARY KEY, FACULTADES VARCHAR(50000), MAGICO TINYINT NOT NULL,HABILIDADES INT NOT NULL,DADODEGOLPE INT NOT NULL)");
@@ -820,4 +828,5 @@ public class AlteraDatosBD {
 		stmt.close();
 
 	}
+	
 }

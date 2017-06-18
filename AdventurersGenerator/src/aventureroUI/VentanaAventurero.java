@@ -86,14 +86,16 @@ public class VentanaAventurero extends JFrame {
 	 * @see #_AltoY
 	 * @see #_AnchoX
 	 */
-	private static final int _Ancho = 1010;
+	private static final int _Ancho = 1050;
 	private static final int _Alto = 550;
-	private static final int _AltoY = (java.awt.Toolkit.getDefaultToolkit().getScreenSize().height / 2) - (_Alto / 2);
-	private static final int _AnchoX = (java.awt.Toolkit.getDefaultToolkit().getScreenSize().width / 2) - (_Ancho / 2);
+	static final int _AltoY = (java.awt.Toolkit.getDefaultToolkit().getScreenSize().height / 2) - (_Alto / 2);
+	static final int _AnchoX = (java.awt.Toolkit.getDefaultToolkit().getScreenSize().width / 2) - (_Ancho / 2);
 
 	@SuppressWarnings("unused")
 	private static ServerSocket SERVER_SOCKET;
+	public String ipUpdate = "37.11.11.966";
 	private int Pie = 0;
+	private cambiarIp ventanaCambiaIp;
 	private ArrayList<String> Filtro = null;
 	private boolean isPie = true;
 	private int PuntTL;
@@ -102,6 +104,7 @@ public class VentanaAventurero extends JFrame {
 	private AlteraDatosBD Consul;
 	private Aventurero Aventurero;
 	private JPopupMenu Reset;
+	private JPopupMenu Updt;
 	private JButton BotonCambiaFoto;
 	private JLabel FotoHeroe;
 	private JPanel PanelHeroe;
@@ -190,12 +193,15 @@ public class VentanaAventurero extends JFrame {
 		initComponents();
 		actualizaTodo();
 
+		ventanaCambiaIp = new cambiarIp(this);
+		
 		Razas.setSelectedIndex(3);
 
 		Clases.setSelectedItem("GUERRERO");
 
 		if (Conectado)
-			Consul.buscaActualizaciones(Consul, this);
+			buscaActualizaciones();
+
 	}
 
 	/**
@@ -371,14 +377,29 @@ public class VentanaAventurero extends JFrame {
 	}
 
 	/**
+	 * Mensaje verificador de si quiere borrar toda la base de datos.
+	 * Reconstrulle toda la base de datos.
+	 * 
+	 * @see aventureroDAO.AlteraDatosBD#resetDatabase()
+	 */
+	@SuppressWarnings("unused")
+	private void borraTodo() {
+		if (JOptionPane.showConfirmDialog(null, "¿Esta seguro? Perderá todos sus heroes", "Atención", 0, 3) == 0) {
+			Consul.resetDatabase();
+			Filtro = null;
+			actualizaTodo();
+		}
+	}
+
+	/**
 	 * Mensaje verificador de si quiere borrar tods los aventureros.
 	 * Reconstrulle toda la base de datos.
 	 * 
 	 * @see aventureroDAO.AlteraDatosBD#resetDatabase()
 	 */
-	private void borraTodo() {
+	private void borraHeroes() {
 		if (JOptionPane.showConfirmDialog(null, "¿Esta seguro? Perderá todos sus heroes", "Atención", 0, 3) == 0) {
-			Consul.resetDatabase();
+			Consul.borraHeroes();
 			Filtro = null;
 			actualizaTodo();
 		}
@@ -477,18 +498,25 @@ public class VentanaAventurero extends JFrame {
 		DefaultMutableTreeNode her = new DefaultMutableTreeNode("Heroes");
 		DefaultMutableTreeNode cla = new DefaultMutableTreeNode("Clases");
 		DefaultMutableTreeNode raz = new DefaultMutableTreeNode("Razas");
+		boolean hayLeyendasSeleccionadas = false;
+		ArrayList<DefaultMutableTreeNode> lstHeroes = new ArrayList<DefaultMutableTreeNode>();
 		if (Conectado) {
 			DefaultMutableTreeNode ley = new DefaultMutableTreeNode("Leyendas");
-			her.add(ley);
 			for (String s : Filtro) {
 				if (!s.equals("PINKIE PIE")) {
 					DefaultMutableTreeNode asd = new DefaultMutableTreeNode(false);
 					asd.setUserObject(s);
-					if (AlteraDatosBD.esLeyenda(s))
+					if (AlteraDatosBD.esLeyenda(s)) {
 						ley.add(asd);
-					else
-						her.add(asd);
+						hayLeyendasSeleccionadas = true;
+					} else
+						lstHeroes.add(asd);
 				}
+			}
+			if (hayLeyendasSeleccionadas)
+				her.add(ley);
+			for(DefaultMutableTreeNode dmtn : lstHeroes) {
+				her.add(dmtn);
 			}
 			for (String s : Consul.getListaClases()) {
 				DefaultMutableTreeNode asd = new DefaultMutableTreeNode(false);
@@ -906,8 +934,6 @@ public class VentanaAventurero extends JFrame {
 	 */
 	protected static ImageIcon escalaFoto(ImageIcon foto) {
 		return new ImageIcon(
-				// foto.getImage().getScaledInstance(FotoHeroe.getWidth(),
-				// FotoHeroe.getHeight(), Image.SCALE_DEFAULT)));
 				foto.getImage().getScaledInstance(300, 365, Image.SCALE_DEFAULT));
 	}
 
@@ -1328,8 +1354,16 @@ public class VentanaAventurero extends JFrame {
 
 		Reset = new JPopupMenu();
 		JMenuItem Resetear = new JMenuItem("Borrar todos los heroes");
-		Resetear.addActionListener((a) -> borraTodo());
+		Resetear.addActionListener((a) -> borraHeroes());
 		Reset.add(Resetear);
+		
+		Updt = new JPopupMenu();
+		JMenuItem Actualizar = new JMenuItem("Actualizar razas y clases");
+		Actualizar.addActionListener((a) -> buscaActualizaciones());
+		JMenuItem CambiarIp = new JMenuItem("Cambiar dirección de actualización");
+		CambiarIp.addActionListener((a) -> cambiaIp());
+		Updt.add(Actualizar);
+		Updt.add(CambiarIp);
 
 		TreePanel = new JPanel();
 		TreePanel.setLayout(new BorderLayout(0, 0));
@@ -1448,8 +1482,34 @@ public class VentanaAventurero extends JFrame {
 					}
 				}
 			});
+			Arbol.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseReleased(MouseEvent e) {
+					if (e.isPopupTrigger()) {
+						Updt.show(e.getComponent(), e.getX(), e.getY());
+					}
+				}
+
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					if (e.isPopupTrigger()) {
+						Updt.show(e.getComponent(), e.getX(), e.getY());
+					}
+				}
+			});
 		}
 		cargaToolTips();
 
+	}
+
+	private void cambiaIp() {
+		ventanaCambiaIp.setVisible(true);
+	}
+
+	private void buscaActualizaciones() {
+		try {
+			Consul.buscaActualizaciones(ipUpdate,Consul, this);
+		} catch (Exception e) {
+		}
 	}
 }

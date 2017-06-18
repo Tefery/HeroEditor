@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 
 import javax.swing.JOptionPane;
@@ -20,18 +21,18 @@ public class HiloActualiza extends Thread {
 	AlteraDatosBD db;
 	VentanaAventurero va;
 
-	public HiloActualiza(String host, int puerto, AlteraDatosBD db, VentanaAventurero va) {
+	public HiloActualiza(String host, int puerto, AlteraDatosBD db, VentanaAventurero va) throws UnknownHostException, IOException {
 		this.host = host;
 		this.puerto = puerto;
 		this.db = db;
 		this.va = va;
+		this.conexion = new Socket(host, puerto);
 		this.start();
 	}
 
 	@Override
 	public void run() {
 		try {
-			conexion = new Socket(host, puerto);
 			PrintStream salida = new PrintStream(conexion.getOutputStream(), true);
 			BufferedReader entrada = new BufferedReader(new InputStreamReader(conexion.getInputStream()));
 			int version = Integer.parseInt(entrada.readLine());
@@ -43,6 +44,7 @@ public class HiloActualiza extends Thread {
 					va.actualizaTodo();
 				} else {
 					salida.println("close");
+					System.out.println("uptodate");
 				}
 			} else {
 				salida.println("close");
